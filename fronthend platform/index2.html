@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rental System - Connected</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+        }
+        /* Custom styles for better aesthetics */
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .input-field {
+            border: 1px solid #d1d5db;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div id="app" class="w-full max-w-lg">
+        <div class="card bg-white p-8 rounded-xl">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Rental Dashboard</h1>
+
+            <!-- Loading/Status Indicator -->
+            <p id="status-message" class="text-center text-sm mb-4 font-medium text-blue-600">Connecting to Backend...</p>
+
+            <!-- User ID Display (Mandatory for multi-user apps) -->
+            <div class="bg-gray-100 p-3 rounded-lg mb-6">
+                <p class="text-xs text-gray-500 font-semibold mb-1">Your User ID (for private data):</p>
+                <p id="user-id-display" class="break-all text-sm font-mono text-gray-700">Loading...</p>
+            </div>
+
+            <!-- Login/Auth Placeholder -->
+            <div id="auth-section" class="mb-8">
+                <p class="text-sm text-gray-600">Authentication is handled automatically on load using the secure token. You are now authorized to read and write your data.</p>
+            </div>
+
+            <hr class="my-6 border-gray-200">
+
+            <!-- Data Interaction Example -->
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Firestore Data Test</h2>
+            <div class="space-y-4">
+                <input type="text" id="rental-name-input" placeholder="e.g., Tesla Model 3" class="input-field w-full">
+                <button onclick="saveNewRentalItem()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-150 ease-in-out transform hover:scale-[1.01]">
+                    Save New Rental Item
+                </button>
+            </div>
+
+            <p id="data-status-message" class="text-xs mt-4 text-center text-gray-500"></p>
+
+        </div>
+    </div>
+
+    <!-- Firebase SDK Imports and Initialization -->
+    <script type="module">
+        // 1. Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase instances
+        let app;
+        let db;
+        let auth;
+        let currentUserId = 'anonymous'; // Default ID before auth completes
+        const STATUS_DISPLAY = document.getElementById('status-message');
+        const USER_ID_DISPLAY = document.getElementById('user-id-display');
+        const DATA_STATUS = document.getElementById('data-status-message');
+
+        // Access the required global environment variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        /**
+         * Initializes Firebase and authenticates the user.
+         */
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                STATUS_DISPLAY.textContent = 'ERROR: Firebase config not found.';
+                return;
+            }
+
+            try {
+                // Initialize the app
+                STATUS_DISPLAY.textContent = 'Initializing Firebase...';
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Set up auth state listener
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        USER_ID_DISPLAY.textContent = currentUserId;
+                        STATUS_DISPLAY.textContent = `Connected! User: ${user.uid.substring(0, 8)}...`;
+                        console.log("Firebase Auth State Changed: Logged in.", user.uid);
+                    } else {
+                        currentUserId = crypto.randomUUID(); // Fallback for non-authenticated states
+                        USER_ID_DISPLAY.textContent = `${currentUserId} (Anonymous/Fallback)`;
+                        STATUS_DISPLAY.textContent = 'Authentication Failed. Using anonymous ID.';
+                        console.log("Firebase Auth State Changed: Not logged in. Using anonymous ID.");
+                    }
+                });
+
+                // 2. Authentication Logic
+                if (initialAuthToken) {
+                    STATUS_DISPLAY.textContent = 'Signing in with Custom Token...';
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    STATUS_DISPLAY.textContent = 'Token not found. Signing in anonymously...';
+                    await signInAnonymously(auth);
+                }
+
+            } catch (error) {
+                console.error("Firebase Initialization or Auth Error:", error);
+                STATUS_DISPLAY.textContent = `Authentication Error: ${error.message}`;
+            }
+        }
+
+        /**
+         * Saves a new rental item to the current user's private Firestore collection.
+         * Data path: /artifacts/{appId}/users/{userId}/rental_items
+         */
+        window.saveNewRentalItem = async function() {
+            if (!db || !auth.currentUser) {
+                DATA_STATUS.textContent = 'Error: Database not ready or user not authenticated.';
+                return;
+            }
+
+            const rentalName = document.getElementById('rental-name-input').value.trim();
+            if (!rentalName) {
+                DATA_STATUS.textContent = 'Please enter a name for the rental item.';
+                return;
+            }
+
+            const itemData = {
+                name: rentalName,
+                status: 'Available',
+                createdAt: new Date().toISOString(),
+                ownerId: currentUserId
+            };
+
+            try {
+                DATA_STATUS.textContent = 'Saving item...';
+
+                // Define the path for the private collection
+                const collectionPath = `artifacts/${appId}/users/${currentUserId}/rental_items`;
+                const rentalsCollection = collection(db, collectionPath);
+
+                // Add the document to the collection
+                const docRef = await setDoc(doc(rentalsCollection), itemData); // Using setDoc with doc() will generate an ID
+
+                DATA_STATUS.textContent = `Success! Saved item "${rentalName}".`;
+                document.getElementById('rental-name-input').value = '';
+
+            } catch (error) {
+                console.error("Error saving rental item:", error);
+                DATA_STATUS.textContent = `Error saving data: ${error.message}`;
+            }
+        }
+
+        // Start the application initialization process
+        initializeFirebase();
+
+        // 3. Expose the Firebase instances globally for potential debugging or future use in the console
+        window.db = db;
+        window.auth = auth;
+    </script>
+</body>
+</html>

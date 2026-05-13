@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WheelsUp - Vehicle Rental Platform (Secured)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #EF4444; /* Red 500 */
+            --primary-dark: #B91C1C; /* Red 700 */
+            --background-light: #F9FAFB; /* Gray 50 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background-color: var(--background-light);
+        }
+        .text-primary { color: var(--primary-color); }
+        .bg-primary { background-color: var(--primary-color); }
+        .hover-primary:hover { background-color: var(--primary-dark); }
+
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--background-light); }
+        ::-webkit-scrollbar-thumb { background: #9CA3AF; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6B7280; }
+
+        /* Keyframe for a slight lift effect */
+        @keyframes lift-up {
+            0% { transform: translateY(0); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+            50% { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+            100% { transform: translateY(0); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        }
+        .lift-on-hover:hover {
+            animation: lift-up 0.5s ease-out;
+            transform: translateY(-3px);
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div id="auth-gate" class="fixed inset-0 bg-gray-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-10 md:p-12 text-center border-t-8 border-primary">
+            <i data-lucide="key" class="w-12 h-12 text-primary mx-auto mb-4"></i>
+            <h1 class="text-3xl font-extrabold text-gray-900 mb-2">Welcome to <span class="text-primary">WheelsUp</span></h1>
+            <p class="text-gray-600 mb-8">Please register or sign in to access the rental platform and view vehicles.</p>
+
+            <div id="auth-content">
+                <div id="register-form" class="space-y-4">
+                    <h2 class="text-xl font-bold text-gray-800 border-b pb-2">Register</h2>
+                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    <input type="password" id="reg-password" placeholder="Password (min 8 characters)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    <button onclick="simulateLogin('Sarvani')" class="w-full bg-primary text-white p-3 rounded-xl font-bold hover-primary transition duration-300 shadow-lg shadow-red-300/60">
+                        Register and Start Riding
+                    </button>
+                    <p class="text-sm text-center text-gray-600">Already have an account? <a href="#" onclick="switchAuthMode('login')" class="text-primary font-medium hover:underline">Login here</a></p>
+                </div>
+
+                <div id="login-form" class="space-y-4 hidden">
+                    <h2 class="text-xl font-bold text-gray-800 border-b pb-2">Login</h2>
+                    <input type="email" id="login-email" placeholder="Email Address" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    <input type="password" id="login-password" placeholder="Password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
+                    <button onclick="simulateLogin('John Smith')" class="w-full bg-primary text-white p-3 rounded-xl font-bold hover-primary transition duration-300 shadow-lg shadow-red-300/60">
+                        Sign In
+                    </button>
+                    <p class="text-sm text-center text-gray-600">Don't have an account? <a href="#" onclick="switchAuthMode('register')" class="text-primary font-medium hover:underline">Register now</a></p>
+                </div>
+            </div>
+            <p id="auth-message" class="text-red-500 mt-4 text-sm hidden">Please complete all fields.</p>
+        </div>
+    </div>
+
+
+    <div id="main-app-container" class="min-h-screen flex flex-col hidden">
+        <header class="bg-white shadow-md sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex-shrink-0">
+                        <span class="text-3xl font-extrabold text-primary">Wheels<span class="text-gray-900">Up</span></span>
+                    </div>
+
+                    <nav class="hidden md:flex space-x-8">
+                        <a href="#" onclick="showSection('home')" class="text-gray-700 hover:text-primary font-medium transition duration-150 ease-in-out nav-link active-link" data-section="home">Home</a>
+                        <a href="#" onclick="showSection('rent')" class="text-gray-700 hover:text-primary font-medium transition duration-150 ease-in-out nav-link" data-section="rent">Rent Vehicles</a>
+                        <a href="#" onclick="showSection('offer')" class="text-gray-700 hover:text-primary font-medium transition duration-150 ease-in-out nav-link" data-section="offer">Offer Vehicle</a>
+                        <a href="#" onclick="showSection('bookings')" class="text-gray-700 hover:text-primary font-medium transition duration-150 ease-in-out nav-link" data-section="bookings">My Bookings</a>
+                        <a href="#" onclick="showSection('profile')" class="text-gray-700 hover:text-primary font-medium transition duration-150 ease-in-out nav-link" data-section="profile">Profile</a>
+                    </nav>
+
+                    <div class="flex items-center space-x-4">
+                        <button id="profile-access-btn" onclick="showSection('profile')" class="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover-primary transition duration-300 shadow-lg shadow-red-200/50 flex items-center">
+                            <i data-lucide="user" class="w-4 h-4 mr-2"></i> <span id="user-display-name">Profile</span>
+                        </button>
+                    </div>
+
+                    <button id="mobile-menu-btn" class="md:hidden p-2 text-gray-500 hover:text-gray-900 focus:outline-none" onclick="toggleMobileMenu()">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#" onclick="showSection('home'); toggleMobileMenu();" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-primary">Home</a>
+                    <a href="#" onclick="showSection('rent'); toggleMobileMenu();" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-primary">Rent Vehicles</a>
+                    <a href="#" onclick="showSection('offer'); toggleMobileMenu();" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-primary">Offer Vehicle</a>
+                    <a href="#" onclick="showSection('bookings'); toggleMobileMenu();" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-primary">My Bookings</a>
+                    <a href="#" onclick="showSection('profile'); toggleMobileMenu();" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-primary">Profile</a>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full">
+
+            <section id="home-section" class="main-section transition-opacity duration-500 block">
+                <div class="bg-white p-8 rounded-xl shadow-2xl shadow-red-100/50">
+                    <div class="grid md:grid-cols-2 gap-8 items-center">
+                        <div>
+                            <h1 class="text-5xl font-extrabold text-gray-900 mb-4 leading-tight">
+                                Unlock Your Ride: <span class="text-primary">Rent or Share</span>, Hassle-Free.
+                            </h1>
+                            <p class="text-xl text-gray-600 mb-6">
+                                Find the perfect car, bike, or scooty for your next adventure. Join our community to rent vehicles or list your own and earn!
+                            </p>
+                            <div class="flex space-x-4">
+                                <button onclick="showSection('rent')" class="bg-primary text-white text-lg px-8 py-3 rounded-xl font-bold hover-primary transition duration-300 shadow-lg shadow-red-300/60 flex items-center">
+                                    <i data-lucide="key" class="w-5 h-5 mr-2"></i> Start Renting
+                                </button>
+                                <button onclick="showSection('offer')" class="bg-gray-200 text-gray-800 text-lg px-8 py-3 rounded-xl font-bold hover:bg-gray-300 transition duration-300 flex items-center">
+                                    <i data-lucide="car" class="w-5 h-5 mr-2"></i> List Your Vehicle
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="aspect-video bg-gray-100 rounded-xl flex items-center justify-center p-4">
+                                <span class="text-gray-500 text-2xl font-semibold">
+                                    
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6 border-b pb-2">Popular Categories</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center text-center lift-on-hover transition duration-300">
+                            <i data-lucide="car" class="w-12 h-12 text-primary mb-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-1">Cars</h3>
+                            <p class="text-gray-600 text-sm">Comfortable sedans and SUVs for family trips.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center text-center lift-on-hover transition duration-300">
+                            <i data-lucide="bike" class="w-12 h-12 text-primary mb-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-1">Bikes</h3>
+                            <p class="text-gray-600 text-sm">Cruisers and sports bikes for thrill-seekers.</p>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center text-center lift-on-hover transition duration-300">
+                            <i data-lucide="scooter" class="w-12 h-12 text-primary mb-3"></i>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-1">Scooties</h3>
+                            <p class="text-gray-600 text-sm">Quick and easy rentals for city commute.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="rent-section" class="main-section transition-opacity duration-500 hidden">
+                <h2 class="text-4xl font-extrabold text-gray-900 mb-6">Available Vehicles for Rent</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="vehicle-list">
+                    </div>
+            </section>
+
+            <section id="offer-section" class="main-section transition-opacity duration-500 hidden max-w-3xl mx-auto">
+                <div class="bg-white p-8 rounded-xl shadow-2xl">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-6 text-center">List Your Vehicle and Start Earning!</h2>
+                    <form id="offer-vehicle-form" class="space-y-6">
+
+                        <div>
+                            <label for="offer-type" class="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
+                            <select id="offer-type" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                                <option value="" disabled selected>Select Vehicle Type</option>
+                                <option value="Car">Car</option>
+                                <option value="Bike">Bike</option>
+                                <option value="Scooty">Scooty</option>
+                            </select>
+                        </div>
+
+                        <div id="car-seater-group" class="hidden">
+                            <label for="offer-seater" class="block text-sm font-medium text-gray-700 mb-1">Seater Count (Car Only)</label>
+                            <input type="number" id="offer-seater" min="1" max="8" placeholder="e.g., 5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                        </div>
+
+                        <div>
+                            <label for="offer-model" class="block text-sm font-medium text-gray-700 mb-1">Make and Model</label>
+                            <input type="text" id="offer-model" required placeholder="e.g., Maruti Swift, Royal Enfield Classic" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                        </div>
+
+                        <div>
+                            <label for="offer-price" class="block text-sm font-medium text-gray-700 mb-1">Rental Price per Day (in USD)</label>
+                            <input type="number" id="offer-price" required min="10" placeholder="e.g., 50" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                        </div>
+
+                        <div>
+                            <label for="offer-location" class="block text-sm font-medium text-gray-700 mb-1">Pickup Location</label>
+                            <input type="text" id="offer-location" required placeholder="e.g., Downtown, City Center" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                        </div>
+
+                        <div>
+                            <label for="offer-image" class="block text-sm font-medium text-gray-700 mb-1">Upload Vehicle Photo</label>
+                            <input type="file" id="offer-image" accept="image/*" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-red-600 transition duration-150">
+                        </div>
+
+                        <button type="submit" class="w-full bg-primary text-white text-lg px-6 py-3 rounded-xl font-bold hover-primary transition duration-300 shadow-xl shadow-red-300/60 flex items-center justify-center">
+                            <i data-lucide="upload" class="w-5 h-5 mr-2"></i> Submit for Review
+                        </button>
+                        <div id="offer-message" class="text-center mt-4 text-sm font-medium hidden"></div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="bookings-section" class="main-section transition-opacity duration-500 hidden max-w-4xl mx-auto">
+                <h2 class="text-4xl font-extrabold text-gray-900 mb-6">Your Rental History and Upcoming Bookings</h2>
+                <div class="bg-white p-8 rounded-xl shadow-2xl">
+                    <div id="booking-list" class="space-y-4">
+                        <p class="text-gray-600 text-lg text-center p-10 border border-dashed rounded-lg">
+                            <i data-lucide="calendar-check" class="w-8 h-8 mx-auto text-primary mb-3"></i>
+                            You have no active or past bookings. Time to explore the fleet!
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="profile-section" class="main-section transition-opacity duration-500 hidden max-w-xl mx-auto">
+                <div class="bg-white p-8 rounded-xl shadow-2xl">
+                    <div class="flex flex-col items-center space-y-4 mb-8">
+                        <div class="w-24 h-24 bg-primary rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-red-200" id="profile-initials">
+                            JS
+                        </div>
+                        <h2 class="text-3xl font-extrabold text-gray-900" id="profile-user-name">John Smith</h2>
+                        <p class="text-gray-500" id="profile-user-email">sarvani@gmail.com</p>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Account Details</h3>
+                    <div class="space-y-3 text-gray-700">
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <span class="font-medium">License ID:</span>
+                            <span class="font-semibold text-gray-900" id="profile-license-id">LXX00012345</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <span class="font-medium">Rental Credits:</span>
+                            <span class="font-semibold text-green-600">$150.00</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                            <span class="font-medium">Total Rentals:</span>
+                            <span class="font-semibold text-gray-900">12</span>
+                        </div>
+                    </div>
+                    <button onclick="logOut()" class="mt-8 w-full border border-red-500 text-red-500 px-6 py-3 rounded-xl font-bold hover:bg-red-50 transition duration-300 flex items-center justify-center">
+                        <i data-lucide="log-out" class="w-5 h-5 mr-2"></i> Log Out
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="bg-gray-800 text-white p-6 mt-12">
+            <div class="max-w-7xl mx-auto text-center">
+                <p>&copy; 2025 WheelsUp. All rights reserved. | Built with ❤ and Tailwind CSS.</p>
+            </div>
+        </footer>
+    </div>
+
+    <div id="booking-modal" class="modal fixed inset-0 bg-black bg-opacity-50 hidden z-40 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative" onclick="event.stopPropagation()">
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-gray-800" onclick="closeModal('booking-modal')">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <h3 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-2">Complete Your Rental Booking</h3>
+            <div id="booking-vehicle-summary" class="bg-gray-100 p-4 rounded-lg mb-6 text-sm">
+                <p class="font-semibold mb-1">Booking Vehicle: <span id="summary-name" class="font-normal text-gray-700"></span></p>
+                <p class="font-semibold">Price per Day: <span id="summary-price" class="font-normal text-green-600"></span></p>
+            </div>
+
+            <form id="rental-booking-form" class="space-y-6">
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="booking-duration" class="block text-sm font-medium text-gray-700 mb-1">Rental Duration (Days)</label>
+                        <input type="number" id="booking-duration" required min="1" max="30" value="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                    </div>
+                    <div>
+                        <label for="booking-location" class="block text-sm font-medium text-gray-700 mb-1">Pickup/Drop Location</label>
+                        <input type="text" id="booking-location" required placeholder="e.g., Airport, Downtown" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                    </div>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="license-id" class="block text-sm font-medium text-gray-700 mb-1">Driver's License ID</label>
+                        <input type="text" id="license-id" required placeholder="e.g., ABC12345678" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150">
+                    </div>
+                    <div>
+                        <label for="driver-photo" class="block text-sm font-medium text-gray-700 mb-1">Driver Photo Upload (ID Proof)</label>
+                        <input type="file" id="driver-photo" accept="image/*" required class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300 transition duration-150">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-red-50 rounded-lg border border-red-200 text-lg font-bold flex justify-between">
+                    <span>Total Estimated Cost:</span>
+                    <span id="total-cost" class="text-2xl text-primary">$0.00</span>
+                </div>
+
+                <button type="submit" class="w-full bg-primary text-white text-lg px-6 py-3 rounded-xl font-bold hover-primary transition duration-300 shadow-xl shadow-red-300/60 flex items-center justify-center">
+                    <i data-lucide="credit-card" class="w-5 h-5 mr-2"></i> Confirm and Pay
+                </button>
+                <div id="booking-message" class="text-center mt-4 text-sm font-medium hidden"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA SETUP ---
+
+        const VEHICLES = [
+            { id: 1, type: 'Car', model: 'Honda City', price: 65, seater: 5, location: 'Downtown', image: 'https://placehold.co/400x250/2563EB/ffffff?text=Honda+City' },
+            { id: 2, type: 'Bike', model: 'Royal Enfield Classic', price: 40, seater: 2, location: 'Near Station', image: 'https://placehold.co/400x250/F59E0B/ffffff?text=RE+Classic' },
+            { id: 3, type: 'Scooty', model: 'Honda Dio', price: 25, seater: 2, location: 'University Area', image: 'https://placehold.co/400x250/10B981/ffffff?text=Honda+Dio' },
+            { id: 4, type: 'Car', model: 'Toyota Innova', price: 90, seater: 7, location: 'Airport', image: 'https://placehold.co/400x250/6366F1/ffffff?text=Toyota+Innova' },
+            { id: 5, type: 'Bike', model: 'KTM Duke 390', price: 55, seater: 2, location: 'North Side', image: 'https://placehold.co/400x250/EC4899/ffffff?text=KTM+Duke' },
+        ];
+
+        let selectedVehicle = null;
+        let isAuthenticated = false;
+        let activeUser = { name: null, email: null, license: 'LXX00012345' };
+
+        // --- AUTHENTICATION LOGIC ---
+
+        function switchAuthMode(mode) {
+            const titleEl = document.querySelector('#auth-gate h1');
+            const registerForm = document.getElementById('register-form');
+            const loginForm = document.getElementById('login-form');
+            const authMessage = document.getElementById('auth-message');
+            authMessage.classList.add('hidden');
+
+            if (mode === 'register') {
+                titleEl.innerHTML = 'Welcome to <span class="text-primary">WheelsUp</span>';
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            } else {
+                titleEl.innerHTML = 'Sign In to <span class="text-primary">WheelsUp</span>';
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        function simulateLogin(userName) {
+            const nameInput = document.getElementById('reg-name');
+            const emailInput = document.getElementById('reg-email');
+            const passwordInput = document.getElementById('reg-password');
+            const authMessage = document.getElementById('auth-message');
+            
+            if (document.getElementById('register-form').classList.contains('hidden') === false) {
+                if (!nameInput.value || !emailInput.value || !passwordInput.value) {
+                    authMessage.textContent = 'Please fill out all fields to register.';
+                    authMessage.classList.remove('hidden');
+                    return;
+                }
+            }
+            
+            // Set user data
+            activeUser.name = userName;
+            activeUser.email = userName.toLowerCase().replace(' ', '.') + '@example.com';
+
+            // Show main application
+            document.getElementById('auth-gate').classList.add('hidden');
+            document.getElementById('main-app-container').classList.remove('hidden');
+
+            // Update Header and Profile Section
+            updateUIAfterAuth();
+
+            // Initialize content
+            renderVehicleList();
+            showSection('home');
+            isAuthenticated = true;
+        }
+
+        function logOut() {
+            // Simulate logout
+            isAuthenticated = false;
+            activeUser = { name: null, email: null, license: 'LXX00012345' };
+
+            // Hide main application and show auth gate
+            document.getElementById('main-app-container').classList.add('hidden');
+            document.getElementById('auth-gate').classList.remove('hidden');
+            switchAuthMode('login'); // Default to login screen
+        }
+
+        function updateUIAfterAuth() {
+            if (activeUser.name) {
+                // Update navigation button
+                document.getElementById('user-display-name').textContent = activeUser.name.split(' ')[0];
+
+                // Update Profile Section
+                document.getElementById('profile-user-name').textContent = activeUser.name;
+                document.getElementById('profile-user-email').textContent = activeUser.email;
+                document.getElementById('profile-license-id').textContent = activeUser.license;
+
+                // Set initials for avatar
+                const initials = activeUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                document.getElementById('profile-initials').textContent = initials.substring(0, 2);
+            }
+            lucide.createIcons();
+        }
+
+        // --- UTILITY FUNCTIONS ---
+
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('.main-section');
+            sections.forEach(section => {
+                section.classList.add('hidden', 'opacity-0');
+                section.classList.remove('block');
+            });
+
+            const targetSection = document.getElementById(`${sectionId}-section`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden', 'opacity-0');
+                targetSection.classList.add('block');
+            }
+
+            // Update active navigation link
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active-link', 'text-primary');
+                link.classList.add('text-gray-700');
+                if (link.getAttribute('data-section') === sectionId) {
+                    link.classList.add('active-link', 'text-primary');
+                    link.classList.remove('text-gray-700');
+                }
+            });
+
+            lucide.createIcons();
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+        }
+
+
+        // --- RENT VEHICLE LOGIC ---
+
+        function getVehicleIcon(type) {
+            switch (type) {
+                case 'Car': return 'car';
+                case 'Bike': return 'bike';
+                case 'Scooty': return 'scooter';
+                default: return 'help-circle';
+            }
+        }
+
+        function renderVehicleList() {
+            const listContainer = document.getElementById('vehicle-list');
+            if (!listContainer) return;
+
+            const html = VEHICLES.map(v => {
+                const icon = getVehicleIcon(v.type);
+                const seaterText = v.type === 'Car' ? `<span class="flex items-center text-sm text-gray-500"><i data-lucide="users" class="w-4 h-4 mr-1"></i> ${v.seater} Seater</span>` : '';
+
+                return `
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 lift-on-hover transition duration-300 flex flex-col">
+                        <img src="${v.image}" alt="${v.model}" class="w-full h-48 object-cover object-center">
+                        <div class="p-5 flex-grow">
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-2xl font-bold text-gray-900">${v.model}</h3>
+                                <i data-lucide="${icon}" class="w-6 h-6 text-primary"></i>
+                            </div>
+                            <p class="text-3xl font-extrabold text-green-600 mb-4">$${v.price}<span class="text-base font-normal text-gray-500">/day</span></p>
+                            <div class="flex justify-between items-center text-sm mb-4">
+                                <span class="flex items-center text-gray-500">
+                                    <i data-lucide="map-pin" class="w-4 h-4 mr-1"></i> ${v.location}
+                                </span>
+                                ${seaterText}
+                            </div>
+                            <button onclick="openBookingModal(${v.id})" class="mt-auto w-full bg-primary text-white py-3 rounded-lg font-bold hover-primary transition duration-300 flex items-center justify-center shadow-md shadow-red-200/50">
+                                <i data-lucide="key-round" class="w-5 h-5 mr-2"></i> Book Now
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            listContainer.innerHTML = html;
+            lucide.createIcons(); // Re-render icons for new content
+        }
+
+
+        // --- OFFER VEHICLE LOGIC ---
+
+        document.getElementById('offer-type').addEventListener('change', function() {
+            const type = this.value;
+            const seaterGroup = document.getElementById('car-seater-group');
+            if (type === 'Car') {
+                seaterGroup.classList.remove('hidden');
+                document.getElementById('offer-seater').setAttribute('required', 'required');
+            } else {
+                seaterGroup.classList.add('hidden');
+                document.getElementById('offer-seater').removeAttribute('required');
+            }
+        });
+
+        document.getElementById('offer-vehicle-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const type = document.getElementById('offer-type').value;
+            const model = document.getElementById('offer-model').value;
+            const price = parseFloat(document.getElementById('offer-price').value);
+            const location = document.getElementById('offer-location').value;
+            const seater = type === 'Car' ? parseInt(document.getElementById('offer-seater').value) : 2;
+            
+            const offerMessage = document.getElementById('offer-message');
+            offerMessage.classList.remove('hidden', 'text-green-500', 'text-red-500');
+            
+            if (isNaN(price) || price < 10) {
+                offerMessage.textContent = 'Price per day must be a valid number greater than $10.';
+                offerMessage.classList.add('text-red-500');
+                return;
+            }
+
+            const newVehicle = {
+                id: VEHICLES.length + 1,
+                type: type,
+                model: model,
+                price: price,
+                seater: seater,
+                location: location,
+                image: `https://placehold.co/400x250/374151/ffffff?text=${model.replace(/ /g, '+')}`, // Placeholder image based on model
+                owner: activeUser.name || 'Anonymous User'
+            };
+
+            VEHICLES.unshift(newVehicle); // Add to the start of the list
+            renderVehicleList(); // Re-render the rental list
+
+            offerMessage.textContent = `Success! Your ${model} (${type}) has been listed for $${price}/day. It is now available for rent!`;
+            offerMessage.classList.remove('text-red-500');
+            offerMessage.classList.add('text-green-500');
+            form.reset(); // Clear the form
+            document.getElementById('car-seater-group').classList.add('hidden'); // Hide seater field
+            document.getElementById('offer-image').value = null; // Clear file input
+        });
+
+
+        // --- BOOKING MODAL LOGIC ---
+
+        function openBookingModal(vehicleId) {
+            selectedVehicle = VEHICLES.find(v => v.id === vehicleId);
+            
+            if (!selectedVehicle) {
+                alert('Vehicle not found!');
+                return;
+            }
+
+            document.getElementById('summary-name').textContent = selectedVehicle.model;
+            document.getElementById('summary-price').textContent = `$${selectedVehicle.price}/day`;
+            
+            // Prefill license ID from profile
+            document.getElementById('license-id').value = activeUser.license;
+            
+            // Ensure duration defaults to 1 if empty/zero on open
+            const durationInput = document.getElementById('booking-duration');
+            if (parseInt(durationInput.value) < 1) {
+                durationInput.value = 1;
+            }
+
+            calculateTotalCost();
+
+            // Show modal
+            document.getElementById('booking-modal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function calculateTotalCost() {
+            const durationInput = document.getElementById('booking-duration');
+            const totalCostSpan = document.getElementById('total-cost');
+            
+            const duration = parseInt(durationInput.value) || 0;
+            
+            if (selectedVehicle && duration > 0) {
+                const total = selectedVehicle.price * duration;
+                totalCostSpan.textContent = `$${total.toFixed(2)}`;
+            } else {
+                totalCostSpan.textContent = '$0.00';
+            }
+        }
+
+        // Recalculate cost when duration changes
+        document.getElementById('booking-duration').addEventListener('input', calculateTotalCost);
+        document.getElementById('booking-duration').addEventListener('change', calculateTotalCost);
+
+
+        document.getElementById('rental-booking-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const duration = document.getElementById('booking-duration').value;
+            const location = document.getElementById('booking-location').value;
+            const licenseId = document.getElementById('license-id').value;
+            const driverPhoto = document.getElementById('driver-photo').files[0];
+            const totalCost = document.getElementById('total-cost').textContent;
+            const bookingMessage = document.getElementById('booking-message');
+
+            bookingMessage.classList.remove('hidden', 'text-green-500', 'text-red-500');
+
+            // Simple validation
+            if (!duration || !location || !licenseId || !driverPhoto) {
+                bookingMessage.textContent = 'Please ensure all booking details, including the driver photo, are filled out.';
+                bookingMessage.classList.add('text-red-500');
+                return;
+            }
+
+            // Simulate booking success
+            bookingMessage.textContent = `Success! You have booked the ${selectedVehicle.model} for ${duration} days. Total: ${totalCost}. Confirmation sent to ${activeUser.email}.`;
+            bookingMessage.classList.remove('text-red-500');
+            bookingMessage.classList.add('text-green-500');
+
+            // Simulate adding to 'My Bookings'
+            const bookingList = document.getElementById('booking-list');
+            
+            // Clear the placeholder if it exists
+            const placeholder = bookingList.querySelector('p.p-10');
+            if (placeholder) placeholder.remove();
+
+            const bookingItem = `
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-sm">
+                    <p class="font-bold text-lg text-green-800">Confirmed Booking (ID: ${Math.floor(Math.random() * 10000)})</p>
+                    <p class="text-sm text-gray-700">Vehicle: <span class="font-semibold">${selectedVehicle.model}</span> | Duration: <span class="font-semibold">${duration} days</span></p>
+                    <p class="text-sm text-gray-700">Pickup Location: <span class="font-semibold">${location}</span> | Cost: <span class="font-semibold">${totalCost}</span></p>
+                    <p class="text-xs text-green-600 mt-1">Status: Ready for pickup!</p>
+                </div>
+            `;
+            bookingList.insertAdjacentHTML('afterbegin', bookingItem);
+            
+            // Close modal after a delay
+            setTimeout(() => {
+                closeModal('booking-modal');
+                document.getElementById('rental-booking-form').reset();
+                bookingMessage.classList.add('hidden'); // Hide success message for next time
+            }, 2500);
+        });
+
+
+        // --- INITIALIZATION ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initial icon rendering
+            lucide.createIcons();
+            // Start with registration form visible
+            switchAuthMode('register');
+        });
+    </script>
+</body>
+</html>
